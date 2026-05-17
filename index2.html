@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Royal Birthday Book ✨</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&family=Grand+Hotel&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --gold: #d4af37;
+            --gold-light: #f9e29d;
+            --purple-btn: #6320ee;
+            --purple-hover: #7b2cbf;
+        }
+
+        body {
+            font-family: 'Comfortaa', cursive;
+            background: radial-gradient(circle at center, #1a1c3a 0%, #090a15 100%);
+            color: #f8fafc;
+        }
+
+        .cursive-heading {
+            font-family: 'Grand Hotel', cursive;
+            background: linear-gradient(to bottom, var(--gold-light) 20%, var(--gold) 50%, #8a6d3b 80%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+        }
+
+        /* 3D Book Container Rigging */
+        .book-container {
+            perspective: 1500px;
+        }
+
+        /* Ivory Parchment Pages */
+        .page-left {
+            transform-origin: right center;
+            transition: transform 0.1s linear;
+            background: linear-gradient(to left, #fdfcf0, #e6e2d3) !important;
+            border: 2px solid #bba14f;
+        }
+        .page-right {
+            transform-origin: left center;
+            transition: transform 0.1s linear;
+            background: linear-gradient(to right, #fdfcf0, #e6e2d3) !important;
+            border: 2px solid #bba14f;
+        }
+
+        /* Pop-up container holding our content */
+        .popup-element {
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform: scale(0) translateY(40px);
+            opacity: 0;
+        }
+        .popup-element.popped {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+
+        /* Smooth Cake Assembly Transitions via Scroll */
+        .cake-part {
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform: scale(0) translateY(-60px);
+            opacity: 0;
+        }
+        .cake-part.visible {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+
+        @keyframes flicker {
+            0%, 100% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.25) translateY(-2px); opacity: 1; }
+        }
+        .flame {
+            animation: flicker 0.4s ease-in-out infinite;
+        }
+
+        /* Ambient Background Floating Gold Dust & Sky Lanterns */
+        @keyframes ambientUp {
+            0% { transform: translateY(105vh) translateX(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.8; }
+            90% { opacity: 0.8; }
+            100% { transform: translateY(-15vh) translateX(var(--drift, 50px)) rotate(var(--rot, 20deg)); opacity: 0; }
+        }
+        .bg-particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1;
+            animation: ambientUp var(--d, 12s) linear infinite;
+        }
+
+        #progressBar {
+            background: linear-gradient(to right, #8a6d3b, var(--gold), var(--gold-light));
+            box-shadow: 0 0 10px var(--gold);
+        }
+    </style>
+</head>
+<body class="w-full min-h-screen relative overflow-x-hidden">
+
+    <div id="ambient-container" class="absolute inset-0 pointer-events-none select-none z-0"></div>
+
+    <div class="fixed top-0 left-0 h-1.5 z-50 transition-all duration-100" id="progressBar" style="width: 0%"></div>
+
+    <main class="relative w-full flex flex-col items-center z-10">
+
+        <section class="h-screen w-full flex flex-col items-center justify-center text-center p-6 sticky top-0 z-10 pointer-events-none">
+            <span class="bg-black/40 backdrop-blur-md text-amber-200 border border-amber-900/50 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest inline-block mb-4 shadow-xl pointer-events-auto">👑 A ROYAL CELEBRATION</span>
+            <h1 class="cursive-heading text-7xl md:text-9xl font-bold pointer-events-auto">
+                Happy Birthday, Revantttthh!
+            </h1>
+            <p class="text-amber-100/60 font-semibold text-sm mt-6 animate-bounce tracking-[0.2em] uppercase pointer-events-auto">
+                Scroll down to bake the magic ↓
+            </p>
+        </section>
+
+        <section class="h-[150vh] w-full pointer-events-none"></section>
+
+        <section class="h-screen w-full flex flex-col items-center justify-center text-center p-6 sticky bottom-0 z-30 pointer-events-none">
+            <button id="actionBtn" onclick="blowCandles()" class="bg-[#6320ee] hover:bg-[#7b2cbf] text-white font-bold px-12 py-5 rounded-full shadow-[0_10px_40px_rgba(99,32,238,0.5)] text-sm tracking-[0.2em] uppercase transition-all scale-100 active:scale-95 cursor-pointer transform translate-y-40 pointer-events-auto hidden opacity-0 border border-purple-400">
+                🕯️ Make Your Royal Wish 💨
+            </button>
+        </section>
+
+        <div class="fixed inset-0 flex items-center justify-center pointer-events-none z-20 book-container px-4">
+            <div id="main-book" class="w-full max-w-4xl h-[380px] md:h-[480px] flex relative transform rotateX(12deg)">
+                
+                <div id="p-left" class="page-left w-1/2 h-full rounded-l-2xl shadow-[inset_-20px_0_50px_rgba(0,0,0,0.1),-10px_10px_30px_rgba(0,0,0,0.5)] p-6 md:p-10 flex flex-col items-center justify-center origin-right" style="transform: rotateY(-160deg)">
+                    <div class="popup-element left-content w-full flex flex-col items-center justify-center text-amber-950 text-center font-serif">
+                        <div class="text-5xl mb-4">⚜️</div>
+                        <h2 class="text-3xl md:text-5xl font-bold italic mb-3">Chapter 23</h2> <div class="w-16 h-px bg-amber-900/30 mb-4"></div>
+                        <div class="w-16 h-px bg-amber-900/30 mb-4"></div>
+                        <p class="text-base md:text-xl font-serif italic text-amber-900/80 max-w-[320px] leading-relaxed">
+                            A very very very happy birthday raa revaaanthh!!
+                        </p>
+                    </div>
+                </div>
+
+                <div id="p-right" class="page-right w-1/2 h-full rounded-r-2xl shadow-[inset_20px_0_50px_rgba(0,0,0,0.1),10px_10px_30px_rgba(0,0,0,0.5)] p-4 md:p-8 flex items-center justify-center origin-left relative" style="transform: rotateY(160deg)">
+                    <div class="popup-element right-content w-full h-full flex flex-col items-center justify-end pb-16 relative">
+                        
+                        <div class="relative w-full flex flex-col items-center">
+                            
+                            <div id="flames-group" class="absolute -top-14 flex justify-center gap-5 w-32 opacity-0 transition-opacity duration-500 pointer-events-none z-30">
+                                <span class="flame text-xl text-amber-400 drop-shadow-[0_0_8px_#ff9f1c]">🔥</span>
+                                <span class="flame text-xl text-amber-400 drop-shadow-[0_0_8px_#ff9f1c] [animation-delay:0.15s]">🔥</span>
+                                <span class="flame text-xl text-amber-400 drop-shadow-[0_0_8px_#ff9f1c] [animation-delay:0.3s]">🔥</span>
+                            </div>
+
+                            <div id="smoke-puff" class="absolute -top-16 text-4xl opacity-0 transition-all duration-700 transform scale-50 z-40 pointer-events-none">💨</div>
+
+                            <div id="cake-candles" class="cake-part absolute -top-6 flex justify-center gap-5 w-32 z-20">
+                                <div class="w-1.5 h-7 bg-gradient-to-b from-indigo-400 to-indigo-600 rounded-sm shadow-sm"></div>
+                                <div class="w-1.5 h-7 bg-gradient-to-b from-pink-400 to-pink-600 rounded-sm shadow-sm"></div>
+                                <div class="w-1.5 h-7 bg-gradient-to-b from-purple-400 to-purple-600 rounded-sm shadow-sm"></div>
+                            </div>
+
+                            <div id="cake-cream" class="cake-part w-28 h-7 bg-gradient-to-r from-pink-100 to-pink-200 rounded-t-lg shadow-sm border-b border-pink-300/30 flex items-center justify-around px-2 z-10">
+                                <span class="text-[10px]">🍓</span><span class="text-[8px]">✨</span><span class="text-[10px]">🍒</span><span class="text-[8px]">✨</span><span class="text-[10px]">🍓</span>
+                            </div>
+
+                            <div id="cake-base" class="cake-part w-36 h-14 bg-gradient-to-r from-amber-800 to-amber-950 rounded-md shadow-xl border-t border-amber-600/30 flex items-center justify-center">
+                                <div class="w-full h-2 bg-amber-700/40 mt-2"></div>
+                            </div>
+
+                            <div class="w-44 h-3 bg-gradient-to-r from-slate-300 to-slate-400 rounded-full shadow-lg border border-slate-200 mt-0.5"></div>
+                            <div class="w-16 h-4 bg-slate-400 rounded-b-md shadow-md"></div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        let isBlown = false;
+
+        // Rich Ambient Particle Engine (Floating Gold Star Dust Elements)
+        function initAmbientParticles() {
+            const container = document.getElementById('ambient-container');
+            const icons = ['✨', '⭐', '🔸', '▫️'];
+            for (let i = 0; i < 30; i++) {
+                const p = document.createElement('div');
+                p.className = 'bg-particle text-sm text-amber-200/50';
+                p.innerText = icons[Math.floor(Math.random() * icons.length)];
+                p.style.left = Math.random() * 100 + 'vw';
+                p.style.top = Math.random() * 100 + 'vh';
+                p.style.setProperty('--d', (Math.random() * 8 + 12) + 's');
+                p.style.setProperty('--drift', (Math.random() * 60 - 30) + 'px');
+                container.appendChild(p);
+            }
+        }
+        initAmbientParticles();
+
+        // Core Scroll Orchestration Engine
+        window.addEventListener('scroll', () => {
+            const scrollTop = window.scrollY;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrollPercent = (scrollTop / docHeight) * 100;
+            
+            document.getElementById('progressBar').style.width = scrollPercent + '%';
+
+            const leftPage = document.getElementById('p-left');
+            const rightPage = document.getElementById('p-right');
+            const popups = document.querySelectorAll('.popup-element');
+            const actionBtn = document.getElementById('actionBtn');
+
+            // 1. Handle 3D Book Page Opening Translation
+            let leftDegrees = -160 + (scrollPercent * 2.2); 
+            if (leftDegrees > 0) leftDegrees = 0;
+
+            let rightDegrees = 160 - (scrollPercent * 2.2);
+            if (rightDegrees < 0) rightDegrees = 0;
+
+            leftPage.style.transform = `rotateY(${leftDegrees}deg)`;
+            rightPage.style.transform = `rotateY(${rightDegrees}deg)`;
+
+            if (scrollPercent > 15) {
+                popups.forEach(el => el.classList.add('popped'));
+            } else {
+                popups.forEach(el => el.classList.remove('popped'));
+            }
+
+            // 2. Automated Scroll Assembly Checkpoints
+            // Step 1: Base Tier
+            if (scrollPercent >= 25) {
+                document.getElementById('cake-base').classList.add('visible');
+            } else {
+                document.getElementById('cake-base').classList.remove('visible');
+            }
+
+            // Step 2: Frosting & Sprinkles
+            if (scrollPercent >= 50) {
+                document.getElementById('cake-cream').classList.add('visible');
+            } else {
+                document.getElementById('cake-cream').classList.remove('visible');
+            }
+
+            // Step 3: Candle Stick Structural Alignment
+            if (scrollPercent >= 72) {
+                document.getElementById('cake-candles').classList.add('visible');
+            } else {
+                document.getElementById('cake-candles').classList.remove('visible');
+            }
+
+            // Step 4: Auto-Ignition of Flame Array + Action Button Reveal
+            if (scrollPercent >= 88) {
+                if (!isBlown) {
+                    document.getElementById('flames-group').style.opacity = '1';
+                }
+                actionBtn.classList.remove('hidden');
+                setTimeout(() => actionBtn.classList.add('opacity-100', 'translate-y-0'), 50);
+            } else {
+                if (!isBlown) {
+                    document.getElementById('flames-group').style.opacity = '0';
+                }
+                actionBtn.classList.remove('opacity-100', 'translate-y-0');
+                setTimeout(() => actionBtn.classList.add('hidden'), 400);
+            }
+        });
+
+        // Candle Blowing Ceremony Mechanics
+        function blowCandles() {
+            if (isBlown) return;
+            isBlown = true;
+
+            // Instantly eliminate flames
+            document.getElementById('flames-group').style.opacity = '0';
+
+            // Smoke Puff Animation Execution
+            const smoke = document.getElementById('smoke-puff');
+            smoke.classList.remove('opacity-0', 'scale-50');
+            smoke.classList.add('opacity-100', 'scale-125', '-translate-y-8');
+            setTimeout(() => smoke.classList.add('opacity-0'), 900);
+
+            // Change button text to success response state
+            const btn = document.getElementById('actionBtn');
+            btn.innerText = "✨ LEGACY OF JOY UNLOCKED ✨";
+            btn.style.background = "linear-gradient(135deg, #10b981, #059669)";
+            btn.style.boxShadow = "0 0 35px rgba(16, 185, 129, 0.6)";
+            btn.disabled = true;
+
+            // Grand Golden-Purple Confetti Celebration Burst Finale
+            var end = Date.now() + (2.5 * 1000);
+            var customColors = ['#6320ee', '#a78bfa', '#d4af37', '#f9e29d', '#ffffff'];
+
+            (function frame() {
+                confetti({
+                    particleCount: 7,
+                    angle: 60,
+                    spread: 65,
+                    origin: { x: 0, y: 0.8 },
+                    colors: customColors
+                });
+                confetti({
+                    particleCount: 7,
+                    angle: 120,
+                    spread: 65,
+                    origin: { x: 1, y: 0.8 },
+                    colors: customColors
+                });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            }());
+        }
+    </script>
+</body>
+</html>
